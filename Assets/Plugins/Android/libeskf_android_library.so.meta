@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: ca4ec06d9a988f74baf35db5a5c0f011
+=======
+guid: 78e1907a66f70464d98eb3446a41c3f0
+>>>>>>> 4bcc794805ab01a9465284fe70cdf1cc9ae667cd
 PluginImporter:
   externalObjects: {}
   serializedVersion: 2
@@ -17,6 +21,10 @@ PluginImporter:
       enabled: 1
       settings:
         CPU: ARM64
+<<<<<<< HEAD
+=======
+        Is16KbAligned: false
+>>>>>>> 4bcc794805ab01a9465284fe70cdf1cc9ae667cd
   - first:
       Any: 
     second:

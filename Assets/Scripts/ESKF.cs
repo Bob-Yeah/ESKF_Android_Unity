@@ -91,15 +91,24 @@ public static class ESKFNativeMethods
     [DllImport(DLL_NAME)] public static extern IntPtr CreateESKFClass(ref NativeInitData initData);
     [DllImport(DLL_NAME)] public static extern IntPtr GetPos(IntPtr obj);
     [DllImport(DLL_NAME)] public static extern IntPtr GetQuat(IntPtr obj);
+    [DllImport(DLL_NAME)] public static extern IntPtr GetAccelBias(IntPtr obj);
+    [DllImport(DLL_NAME)] public static extern IntPtr GetGyroBias(IntPtr obj);
     [DllImport(DLL_NAME)] public static extern void FreeVector(IntPtr obj);
     [DllImport(DLL_NAME)] public static extern void FreeQuaternion(IntPtr obj);
     [DllImport(DLL_NAME)] public static extern NativeVector3 TestDataInOut(NativeVector3 vec);
-    [DllImport(DLL_NAME)] public static extern void PredictIMU(IntPtr obj, NativeVector3 a_m, NativeVector3 omega_m, float dt);
+    [DllImport(DLL_NAME)] public static extern void PredictIMU(IntPtr obj, NativeVector3 a_m, NativeVector3 omega_m, double dt);
+    [DllImport(DLL_NAME)] public static extern void MeasurePos(IntPtr obj, NativeVector3 pos_m, float sigma_meas_pos);
+    [DllImport(DLL_NAME)] public static extern void MeasureQuat(IntPtr obj, NativeQuaternion quat_m, float sigma_meas_quat);
+    
 }
 public class ESKF : IDisposable
 {
 
     private IntPtr _nativePtr;
+
+    private float sigma_meas_pos = 0.003f;
+    private float sigma_meas_quat = 0.03f;
+
 
     public ESKF(float gravity, Vector3 initPos, Vector3 initVel, Quaternion initQuat, Vector3 accelBias, Vector3 gyroBias, 
         float sigma_init_pos, float sigma_init_vel, float sigma_init_dtheta, float sigma_init_accel_bias, float sigma_init_gyro_bias,
@@ -108,6 +117,7 @@ public class ESKF : IDisposable
         NativeInitData initData = new NativeInitData (gravity, initPos, initVel, initQuat,
             accelBias, gyroBias, sigma_init_pos, sigma_init_vel, sigma_init_dtheta,
             sigma_init_accel_bias, sigma_init_gyro_bias, sigma_accel, sigma_gyro, sigma_accel_drift, sigma_gyro_drift);
+
 
         _nativePtr = ESKFNativeMethods.CreateESKFClass(ref initData);
     }
@@ -130,11 +140,41 @@ public class ESKF : IDisposable
         return res;
     }
 
-    public void PredictIMU(Vector3 a_m, Vector3 omega_m, float dt)
+    public Vector3 GetAccelBias()
+    {
+        IntPtr vecPtr = ESKFNativeMethods.GetAccelBias(_nativePtr);
+        NativeVector3 nativeVec = Marshal.PtrToStructure<NativeVector3>(vecPtr);
+        Vector3 res = nativeVec.ToUnityVector();
+        ESKFNativeMethods.FreeVector(vecPtr);
+        return res;
+    }
+
+    public Vector3 GetGyroBias()
+    {
+        IntPtr vecPtr = ESKFNativeMethods.GetGyroBias(_nativePtr);
+        NativeVector3 nativeVec = Marshal.PtrToStructure<NativeVector3>(vecPtr);
+        Vector3 res = nativeVec.ToUnityVector();
+        ESKFNativeMethods.FreeQuaternion(vecPtr);
+        return res;
+    }
+
+    public void PredictIMU(Vector3 a_m, Vector3 omega_m, double dt)
     {
         NativeVector3 n_a_m = new NativeVector3(a_m.x, a_m.y, a_m.z);
         NativeVector3 n_omega_m = new NativeVector3(omega_m.x, omega_m.y, omega_m.z);
         ESKFNativeMethods.PredictIMU(_nativePtr, n_a_m, n_omega_m, dt);
+    }
+
+    public void MeasurePos(Vector3 pos_m)
+    {
+        NativeVector3 n_pos_m = new NativeVector3(pos_m.x, pos_m.y, pos_m.z);
+        ESKFNativeMethods.MeasurePos(_nativePtr, n_pos_m, sigma_meas_pos);
+    }
+
+    public void MeasureQuat(Quaternion quat_m)
+    {
+        NativeQuaternion n_quat_m = new NativeQuaternion(quat_m.x, quat_m.y, quat_m.z, quat_m.w);
+        ESKFNativeMethods.MeasureQuat(_nativePtr, n_quat_m, sigma_meas_quat);
     }
 
     static public Vector3 TestDataInOut(Vector3 inVec)
